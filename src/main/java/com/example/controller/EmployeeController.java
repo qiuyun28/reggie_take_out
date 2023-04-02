@@ -41,7 +41,6 @@ public class EmployeeController {
         }
         // 将用户信息放入Session中
         request.getSession().setAttribute("employee", emp.getId());
-
         return R.success(emp);
     }
 
@@ -66,7 +65,6 @@ public class EmployeeController {
         queryWrapper.like(StringUtils.isNotEmpty(name), Employee::getName, name);
         queryWrapper.orderByDesc(Employee::getUpdateTime);
         employeeService.page(pageInfo, queryWrapper);
-
         return R.success(pageInfo);
     }
 

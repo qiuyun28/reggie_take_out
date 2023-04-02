@@ -13,9 +13,11 @@ import com.example.service.SetmealService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -26,14 +28,23 @@ public class SetmealController {
     private SetmealService setmealService;
     @Autowired
     private CategoryService categoryService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @GetMapping("/list")
     public R<List<Setmeal>> list(Setmeal setmeal) {
+
+        String key = "setmeal_" + setmeal.getCategoryId() + "_" + setmeal.getStatus();
+        List<Setmeal> setmeals = (List<Setmeal>) redisTemplate.opsForValue().get(key);
+        if (setmeals != null) {
+            return R.success(setmeals);
+        }
         LambdaQueryWrapper<Setmeal> queryWrapper = new LambdaQueryWrapper<Setmeal>();
         queryWrapper.eq(Setmeal::getStatus, setmeal.getStatus());
         queryWrapper.eq(Setmeal::getCategoryId, setmeal.getCategoryId());
         queryWrapper.orderByAsc(Setmeal::getUpdateTime);
         List<Setmeal> list = setmealService.list(queryWrapper);
+        redisTemplate.opsForValue().set(key, list, 60, TimeUnit.MINUTES);
         return R.success(list);
     }
 
@@ -62,6 +73,8 @@ public class SetmealController {
     @PostMapping()
     public R<String> save(@RequestBody SetmealDto setmealDto) {
         setmealService.saveWithDish(setmealDto);
+        String key = "setmeal_" + setmealDto.getCategoryId() + "*";
+        redisTemplate.delete(key);
         return R.success("保存成功");
     }
 
@@ -73,6 +86,8 @@ public class SetmealController {
     @PutMapping
     public R<String> updateWithDish(@RequestBody SetmealDto setmealDto) {
         setmealService.updateWithDish(setmealDto);
+        String key = "setmeal_" + setmealDto.getCategoryId() + "*";
+        redisTemplate.delete(key);
         return R.success("修改成功");
     }
 
@@ -97,6 +112,8 @@ public class SetmealController {
             setmeal.setStatus(status);
             setmealService.updateById(setmeal);
         }
+        String key = "setmeal*";
+        redisTemplate.delete(key);
         return R.success("更新成功");
     }
 
