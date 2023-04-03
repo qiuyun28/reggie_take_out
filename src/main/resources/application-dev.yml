@@ -27,5 +27,6 @@ spring:
     cache:
       redis:
         time-to-live: 1800000 # 设置缓存过期时间
+        cache-null-values: true
 reggie:
   path: /Users/qiuyun/IdeaProjects/reggie_take_out/src/main/resources/static/download/

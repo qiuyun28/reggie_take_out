@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -67,8 +69,8 @@ public class DishController {
     @PostMapping()
     public R<String> save(@RequestBody DishDto dishdto) {
         dishService.saveWithFlavor(dishdto);
-        String key = "dish_*";
-        redisTemplate.delete(key);
+        Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);
         return R.success("保存成功");
 
     }
@@ -82,10 +84,9 @@ public class DishController {
             dish.setId(id);
             dish.setStatus(status);
             dishService.updateById(dish);
-            Dish newDish = dishService.getById(id);
         }
-        String key = "dish_*";
-        redisTemplate.delete(key);
+        Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);
         return R.success("修改成功");
     }
 
@@ -103,6 +104,7 @@ public class DishController {
     }
 
     @DeleteMapping()
+
     public R<String> remove(@RequestParam("ids") List<Long> ids) {
         LambdaQueryWrapper<Dish> queryWrapper = new LambdaQueryWrapper<Dish>();
         queryWrapper.in(Dish::getId, ids);
@@ -111,6 +113,8 @@ public class DishController {
             throw new CustomException("当前菜品正在售卖中，不能删除！");
         }
         dishService.removeByIdsWithFlavor(ids);
+        Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);;
         return R.success("删除成功");
     }
 
@@ -139,7 +143,7 @@ public class DishController {
             dishDto.setFlavors(dishFlavors);
             return dishDto;
         }).collect(Collectors.toList());
-        redisTemplate.opsForValue().set(key, dishDtoList, 60, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(key, dishDtoList, 60 + new Random().nextInt() % 10, TimeUnit.MINUTES);
 
         return R.success(dishDtoList);
     }
